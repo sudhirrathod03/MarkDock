@@ -1,36 +1,49 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# MarkDock
 
-## Getting Started
+**MarkDock** is a high-performance, real-time bookmarking engine built for the **Abstrabit Fullstack Micro-Challenge**. The application provides secure, multi-user link management with instant cross-tab synchronization.
 
-First, run the development server:
+**🚀 Live Demo:** [https://mark-dock.vercel.app/](https://mark-dock.vercel.app/)
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+---
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 🛠️ Tech Stack
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+* **Frontend:** Next.js 15 (App Router), Tailwind CSS, Lucide React.
+* **Backend:** Supabase (Auth, PostgreSQL, Realtime).
+* **State Management:** React Hooks with Custom Event Dispatching.
+* **Deployment:** Vercel.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+---
 
-## Learn More
+## 🧠 Technical Challenges & Solutions
 
-To learn more about Next.js, take a look at the following resources:
+To deliver a production-ready application within the 72-hour window, I implemented the following engineering solutions:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### 1. PostgreSQL Replication Tuning
+* **Problem:** Real-time `INSERT` events initially returned empty payloads (`new: {}`), breaking the sync logic.
+* **Solution:** Configured the database using `ALTER TABLE bookmarks REPLICA IDENTITY FULL;` to ensure complete row metadata is broadcasted to the client.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### 2. Multi-User Data Isolation (Security)
+* **Problem:** Real-time streams can broadcast data to unauthorized users if not properly filtered at the source.
+* **Solution:** Secured data at the database layer using **Row Level Security (RLS)** with `auth.uid()` checks and enforced **Client-Side Channel Filtering** (`user_id=eq.${userId}`) to ensure strict data privacy.
 
-## Deploy on Vercel
+---
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## ⚙️ Database Schema
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```sql
+create table bookmarks (
+  id uuid default gen_random_uuid() primary key,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  user_id uuid references auth.users not null,
+  url text not null,
+  title text not null
+);
+
+-- Enable RLS for Security
+ALTER TABLE bookmarks ENABLE ROW LEVEL SECURITY;
+
+-- Policy: Individual User Access
+CREATE POLICY "Ownership Policy" ON bookmarks 
+FOR ALL TO authenticated 
+USING (auth.uid() = user_id);
