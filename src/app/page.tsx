@@ -176,7 +176,6 @@ export default function LoginPage() {
             always within reach.
           </p>
 
-
           <div className="flex flex-wrap gap-2 mb-10">
             {["Organized", "Always synced", "Fast access"].map((label) => (
               <div
@@ -197,12 +196,10 @@ export default function LoginPage() {
             <div className="flex-1 h-px bg-black/[0.1]" />
           </div>
 
-
           <button
             onClick={handleLogin}
             className="group relative w-full flex items-center justify-center gap-3 px-6 py-[15px] bg-[#0f0e0c] text-[#f5f2ec] rounded-[10px] text-[0.92rem] font-medium tracking-wide overflow-hidden cursor-pointer transition-all duration-200 hover:-translate-y-px hover:shadow-[0_8px_30px_rgba(15,14,12,0.2)] active:translate-y-0 active:shadow-[0_3px_10px_rgba(15,14,12,0.15)]"
           >
-
             <span className="absolute inset-0 bg-gradient-to-br from-[rgba(196,98,45,0.15)] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
 
             <svg
@@ -229,7 +226,6 @@ export default function LoginPage() {
             </svg>
             <span className="relative z-10">Sign in with Google</span>
           </button>
-
 
           <p className="mt-7 text-center text-[0.75rem] text-black/35 leading-relaxed">
             By continuing, you agree to our{" "}

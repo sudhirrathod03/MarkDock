@@ -39,43 +39,41 @@ export default function BookmarkList({ userId }: { userId: string }) {
       .order("created_at", { ascending: false });
     setBookmarks(data || []);
   }, [supabase]);
-
   useEffect(() => {
-    fetchInitialData();
+    if (!userId) return; 
+    const setupRealtime = async () => {
+      await supabase.realtime.setAuth(userId);
 
-    window.addEventListener("refresh-bookmarks", fetchInitialData);
-
-    const channel = supabase
-    .channel(`user-changes-${userId}`)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "bookmarks", filter: `user_id=eq.${userId}` },
-        (payload) => {
-          console.log("Realtime Payload Received:", payload);
-
-          if (payload.eventType === "INSERT") {
-            if (payload.new && Object.keys(payload.new).length > 0) {
-              const newBookmark = payload.new as Bookmark;
-              setBookmarks((prev) => {
-                if (prev.some((b) => b.id === newBookmark.id)) return prev;
-                return [newBookmark, ...prev];
-              });
-            } else {
-              fetchInitialData();
-            }
-          } else if (payload.eventType === "DELETE") {
-            const deletedId = (payload.old as { id: string }).id;
-            setBookmarks((prev) => prev.filter((b) => b.id !== deletedId));
+      const channel = supabase
+        .channel(`user-sync-${userId}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "bookmarks",
+            filter: `user_id=eq.${userId}`, 
+          },
+          () => {
+            console.log("Change detected - re-fetching...");
+            fetchInitialData();
           }
-        }
-      )
-      .subscribe();
+        )
+        .subscribe((status) => {
+          console.log(`Realtime Status for ${userId}:`, status);
+        });
+
+      return channel;
+    };
+
+    fetchInitialData();
+    const channelPromise = setupRealtime();
 
     return () => {
-      supabase.removeChannel(channel);
+      channelPromise.then((ch) => supabase.removeChannel(ch));
       window.removeEventListener("refresh-bookmarks", fetchInitialData);
     };
-  }, [supabase, fetchInitialData, userId]);
+  }, [userId, fetchInitialData, supabase]);
 
   const deleteBookmark = async (id: string) => {
     const { error } = await supabase.from("bookmarks").delete().eq("id", id);
@@ -100,13 +98,47 @@ export default function BookmarkList({ userId }: { userId: string }) {
       <div className="flex flex-col items-center justify-center py-14 gap-3">
         <div className="w-11 h-11 rounded-xl border-[1.5px] border-dashed border-black/20 flex items-center justify-center text-black/20">
           <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-            <rect x="2" y="2" width="6" height="6" rx="1.5" stroke="currentColor" strokeWidth="1.5" />
-            <rect x="10" y="2" width="6" height="6" rx="1.5" stroke="currentColor" strokeWidth="1.5" />
-            <rect x="2" y="10" width="6" height="6" rx="1.5" stroke="currentColor" strokeWidth="1.5" />
-            <rect x="10" y="10" width="6" height="6" rx="1.5" stroke="currentColor" strokeWidth="1.5" />
+            <rect
+              x="2"
+              y="2"
+              width="6"
+              height="6"
+              rx="1.5"
+              stroke="currentColor"
+              strokeWidth="1.5"
+            />
+            <rect
+              x="10"
+              y="2"
+              width="6"
+              height="6"
+              rx="1.5"
+              stroke="currentColor"
+              strokeWidth="1.5"
+            />
+            <rect
+              x="2"
+              y="10"
+              width="6"
+              height="6"
+              rx="1.5"
+              stroke="currentColor"
+              strokeWidth="1.5"
+            />
+            <rect
+              x="10"
+              y="10"
+              width="6"
+              height="6"
+              rx="1.5"
+              stroke="currentColor"
+              strokeWidth="1.5"
+            />
           </svg>
         </div>
-        <p className="text-sm text-black/30 font-light tracking-wide">No bookmarks yet. Add one above.</p>
+        <p className="text-sm text-black/30 font-light tracking-wide">
+          No bookmarks yet. Add one above.
+        </p>
       </div>
     );
   }
@@ -122,7 +154,6 @@ export default function BookmarkList({ userId }: { userId: string }) {
           >
             <div className="absolute left-0 top-0 bottom-0 w-0.5 rounded-l-xl bg-[#c4622d] opacity-0 group-hover:opacity-100 transition-opacity" />
 
-
             <div className="w-8 h-8 rounded-lg bg-black/5 flex items-center justify-center flex-shrink-0 overflow-hidden">
               {favicon ? (
                 <img
@@ -136,16 +167,32 @@ export default function BookmarkList({ userId }: { userId: string }) {
                   }}
                 />
               ) : (
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="text-black/25">
-                  <path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 14 14"
+                  fill="none"
+                  className="text-black/25"
+                >
+                  <path
+                    d="M2 7h10M8 3l4 4-4 4"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
                 </svg>
               )}
             </div>
 
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-[#0f0e0c] truncate">{b.title}</p>
+              <p className="text-sm font-medium text-[#0f0e0c] truncate">
+                {b.title}
+              </p>
               <div className="flex items-center gap-1.5 mt-0.5">
-                <span className="text-xs text-black/35 truncate">{getDomain(b.url)}</span>
+                <span className="text-xs text-black/35 truncate">
+                  {getDomain(b.url)}
+                </span>
                 <span className="text-black/15 text-xs">·</span>
                 <a
                   href={b.url}
@@ -155,7 +202,13 @@ export default function BookmarkList({ userId }: { userId: string }) {
                 >
                   Visit
                   <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-                    <path d="M2 8L8 2M8 2H4.5M8 2v3.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+                    <path
+                      d="M2 8L8 2M8 2H4.5M8 2v3.5"
+                      stroke="currentColor"
+                      strokeWidth="1.4"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
                   </svg>
                 </a>
               </div>
