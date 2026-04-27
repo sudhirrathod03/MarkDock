@@ -168,12 +168,12 @@ export default function LoginPage() {
           <h1 className="font-serif text-[2.4rem] font-medium leading-[1.15] tracking-tight text-[#0f0e0c] mb-3">
             Your dock
             <br />
-            awaits.
+            awaits
           </h1>
 
           <p className="text-[0.92rem] font-light text-black/50 leading-relaxed mb-10">
             Sign in to access all your important links, neatly organized and
-            always within reach.
+            always within reach
           </p>
 
           <div className="flex flex-wrap gap-2 mb-10">
