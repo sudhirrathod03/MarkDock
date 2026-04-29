@@ -101,7 +101,7 @@ export default function AddBookmark({ userId }: { userId: string }) {
                 strokeLinecap="round"
               />
             </svg>
-            Saving…
+            Saving....
           </>
         ) : (
           <>
